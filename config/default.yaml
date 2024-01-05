@@ -1,0 +1,67 @@
+defaults:
+  - _self_  # overriding order, see https://hydra.cc/docs/tutorials/structured_config/defaults/#a-note-about-composition-order
+  - data: combined_training
+  - model: model
+
+hydra:
+  run:
+    dir: log/${now:%Y%m%d}_${now:%H%M%S.%f}_${alias}
+
+lightning:
+  seed: 1
+
+project:
+  name: CrossScore
+
+alias: ""
+
+trainer:
+  accelerator: gpu
+  devices: [0]
+  # devices: [0, 1]
+  precision: 16-mixed
+  
+  max_epochs: 9
+  max_steps: -1  # def -1
+  
+  overfit_batches: 0  # def 0
+  limit_train_batches: 1.0
+  limit_val_batches: 1.0
+  num_sanity_val_steps: 2  # def 2
+  
+  log_every_n_steps: 50  # def 50
+  ckpt_path_to_load: null
+  
+  checkpointing:
+    every_n_train_steps: null
+    every_n_epochs: null
+    train_time_interval: 2  # hours
+    save_last: True
+    save_top_k: -1
+
+  optimizer:
+    type: AdamW
+    lr: 5e-4
+  
+  lr_scheduler:
+    type: StepLR
+    step_size: 100
+    gamma: 0.5
+    step_interval: epoch  # or step
+  
+  do_profiling: False
+
+logger:
+  vis_imgs_every_n_train_steps: 100
+  vis_scalar_every_n_train_steps: 100
+  vis_histogram_every_n_train_steps: 100
+
+  cache_size:
+    train:
+      n_scalar: 10
+      
+    validation:
+      n_fig: 2
+
+this_main:
+  resize_short_side: 540

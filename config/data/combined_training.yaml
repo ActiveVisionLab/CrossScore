@@ -1,0 +1,39 @@
+loader:
+  train:
+    batch_size: 24
+    num_workers: 6
+    shuffle: True
+    pin_memory: True
+    persistent_workers: True
+    prefetch_factor: 2
+  
+  validation:
+    batch_size: 24
+    num_workers: 6
+    shuffle: True
+    pin_memory: True
+    persistent_workers: True
+    prefetch_factor: 2
+  
+dataset:
+  path: 
+    # -------------- This is only a tiny example for demo. 
+    # We did not train our model using this subset.
+    - datadir/processed_training_ready/gaussian/map-free-reloc
+    # -------------- Below are the actual data used for training (~2TB), 
+    # which is challenging to share. See our github repo 
+    # https://github.com/ActiveVisionLab/CrossScore.git for more details and updates.
+    # - datadir/processed_training_ready/gaussian/map-free-reloc
+    # - datadir/processed_training_ready/nerfacto/map-free-reloc
+    # - datadir/processed_training_ready/tensorf/map-free-reloc
+  resolution: null  # use the first resolution found, usually only one
+  num_gaussians_iters: -1  # set -1 to use all
+  zero_reference: False
+
+neighbour_config:
+  strategy: random
+  cross: 5
+  deterministic: False
+
+transforms:
+  crop_size: 518

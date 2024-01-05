@@ -1,0 +1,37 @@
+loader:
+  train:
+    batch_size: 24
+    num_workers: 6
+    shuffle: True
+    pin_memory: True
+    persistent_workers: True
+    prefetch_factor: 2
+  
+  validation:
+    batch_size: 24
+    num_workers: 6
+    shuffle: True
+    pin_memory: True
+    persistent_workers: True
+    prefetch_factor: 2
+  
+dataset:
+  path: 
+    - datadir/processed_training_ready/gaussian/map-free-reloc
+    # - datadir/processed_training_ready/nerfacto/map-free-reloc
+    # - datadir/processed_training_ready/tensorf/map-free-reloc
+    # - datadir/processed_testing_ready/gaussian/RealEstate200
+    # - datadir/processed_testing_ready/gaussian/mip360
+    # - datadir/processed_testing_ready/ibrnet/map-free-reloc
+    # - datadir/processed_testing_ready/pixelnerf/map-free-reloc
+  resolution: null  # use the first resolution found, usually only one
+  num_gaussians_iters: -1  # set -1 to use all
+  zero_reference: False
+
+neighbour_config:
+  strategy: random
+  cross: 5
+  deterministic: False
+
+transforms:
+  crop_size: 518

@@ -1,0 +1,30 @@
+loader:
+  train:
+    batch_size: 32
+    num_workers: 8
+    shuffle: True
+    pin_memory: True
+    persistent_workers: True
+    prefetch_factor: 2
+  
+  validation:
+    batch_size: 32
+    num_workers: 8
+    shuffle: True  # to vis diff batches
+    pin_memory: True
+    persistent_workers: True
+    prefetch_factor: 2
+  
+dataset:
+  path: datadir/processed_training_ready/gaussian/mip360
+  resolution: res_400  # def res_400
+  num_gaussians_iters: -1  # set -1 to use all
+  zero_reference: False
+
+neighbour_config:
+  strategy: random
+  cross: 5
+  deterministic: False
+
+transforms:
+  crop_size: 518

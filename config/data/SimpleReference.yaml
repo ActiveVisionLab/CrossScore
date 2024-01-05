@@ -1,0 +1,22 @@
+loader:
+  validation:
+    batch_size: 8
+    num_workers: 8
+    shuffle: True
+    pin_memory: True
+    persistent_workers: False
+    prefetch_factor: 2
+  
+dataset:
+  query_dir: null
+  reference_dir: null
+  resolution: res_540
+  zero_reference: False
+
+neighbour_config:
+  strategy: random
+  cross: 5
+  deterministic: False
+
+transforms:
+  crop_size: 518

@@ -1,0 +1,18 @@
+{
+    "files.watcherExclude": {
+        "**/datadir/**": true,
+        "**/log*/**": true
+    },
+    "search.exclude": {
+        "**/datadir/**": true,
+        "**/log*/**": true,
+        "datadir/**": true,
+        "log*/**": true
+    },
+    "python.analysis.exclude": [
+        "**/datadir/**"
+    ],
+    "black-formatter.args": [
+        "--line-length=100"
+    ]
+}

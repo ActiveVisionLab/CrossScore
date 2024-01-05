@@ -1,0 +1,32 @@
+patch_size: 14
+do_reference_cross: True
+
+decoder_do_self_attn: True
+decoder_do_short_cut: True
+need_attn_weights: False  # def False, requires more gpu mem if True
+need_attn_weights_head_id: 0  # check which attn head
+
+backbone:
+  from_pretrained: facebook/dinov2-small
+
+pos_enc:
+  multi_view:
+    interpolate_mode: bilinear
+    req_grad: False
+    h: 40  # def 40 so we always interpolate in training, could be 37 or 16 too.
+    w: 40
+
+loss:
+  fn: l1
+  
+predict:
+  metric:
+    type: ssim
+    # type: mae
+    # type: mse
+
+    # min: -1
+    min: 0
+    max: 1
+
+    power_factor: default  # can be a scalar

@@ -1,0 +1,55 @@
+defaults:
+  - _self_  # overriding order, see https://hydra.cc/docs/tutorials/structured_config/defaults/#a-note-about-composition-order
+  - data: combined_training
+  - model: model
+  - override hydra/hydra_logging: disabled  
+  - override hydra/job_logging: disabled 
+
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+lightning:
+  seed: 1
+
+project:
+  name: CrossScore
+
+alias: ""
+
+trainer:
+  accelerator: gpu
+  devices: [0]
+  # devices: [0, 1]
+  precision: 16-mixed
+  
+  limit_test_batches: 1.0
+  ckpt_path_to_load: null
+
+logger:
+  test:
+    out_dir: null  # if null, use ckpt dir
+    sync_dist: True
+    on_step: False  # def False
+    write:
+      flag:
+        batch: True
+        score_map_prediction: True
+        item_path_json: True
+        score_map_gt: False
+        attn_weights: False
+        image_query: False
+        image_reference: False
+      config:
+        vis_img_every_n_steps: 1  # -1: off
+        score_map_colour_mode: gray  # def gray, use rgb for vis
+
+this_main:
+  resize_short_side: 518  # set to -1 to disable
+  crop_mode: integer_patches  # default, crop imagess to the closest patchifiable size
+  # crop_mode: null  # no crop at all
+  # crop_mode: dataset_default  # crop using data config
+  
+  force_batch_size: False
+  data_split: test  # def test

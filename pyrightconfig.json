@@ -1,0 +1,10 @@
+{
+  "exclude": [
+    "datadir/**",
+    "log*/**"
+  ],
+  "ignore": [
+    "datadir/**",
+    "log*/**"
+  ]
+}
