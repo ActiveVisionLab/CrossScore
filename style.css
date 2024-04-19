@@ -1,0 +1,116 @@
+.container{
+  max-width: 800px;
+}
+
+a{
+  text-decoration-line: none;
+}
+a:hover{
+  color: darkorange;
+}
+
+h1{
+  font-size: 35px;
+}
+
+h2{
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  font-size: 28px;
+}
+
+h3{
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  font-size: 18px;
+  font-style: italic;
+}
+
+pre{
+  margin-bottom: 0;
+}
+
+.title {
+  padding-top: 3rem;
+  text-align: center;
+}
+
+.authors{
+  font-size: 18px;
+  text-align: center;
+  padding-top: 0px;
+  padding-bottom: 0px;
+  margin-top: 0px;
+  margin-bottom: 0px;
+}
+
+.institution{
+  font-size: 18px;
+  text-align: center;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  margin-top: 0px;
+  margin-bottom: 0px;
+  color:#495057
+}
+
+.center_video{
+  margin: 0 auto;
+  display: block;
+  width: 100%;
+  height: auto;
+  padding-bottom: 10px;
+}
+
+.figure {
+  width: 100%; /* Default to full width on smaller screens */
+  margin: 0; /* Optional: Removes default margin */
+}
+
+.responsive-figure {
+  width: 100%; /* Makes the embed element take full width of the figure */
+  height: auto; /* Helps maintain the aspect ratio */
+}
+
+figcaption {
+  font-size: 16px;
+  font-style: italic;
+  color: #495057; 
+  margin-bottom: 10px;
+}
+.figcaption_left {
+  text-align: left;
+}
+.figcaption_center {
+  text-align: center;
+}
+
+.btn-secondary {
+  margin-bottom: 20px; /* Adds space below each button */
+}
+.btn-secondary:hover {
+  color: darkorange;
+  background-color: white;
+  border-color: darkorange;
+}
+
+.video-container {
+  max-width: 600px;   /* Set your desired max width */
+  margin: 0 auto;    /* Center the container */
+  width: 100%;       /* Allow the video to resize based on the window width */
+}
+
+.embed-responsive {
+  position: relative;
+  overflow: hidden;
+  padding-top: 56.25%; /* 16:9 aspect ratio (calculated as 9/16 = 56.25%) */
+}
+
+.embed-responsive iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
