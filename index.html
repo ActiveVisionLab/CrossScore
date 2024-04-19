@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="CrossScore: Towards Multi-View Image Evaluation and Scoring">
+    <meta name="author" content="Zirui Wang">
+    <meta name="generator" content="Jekyll v4.1.1">
+    
+    <title>CrossScore</title>
+
+    <!-- Bootstrap core CSS -->
+    <link 
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" 
+    rel="stylesheet" 
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" 
+    crossorigin="anonymous">
+
+    <!-- Custom styles for this template -->
+    <link href="style.css" rel="stylesheet">
+  </head>
+
+  <body>
+</nav>
+
+
+
+<main role="main" class="container">
+
+  <div class="title">
+    <h1>CrossScore: Towards Multi-View Image Evaluation and Scoring</h1>
+    <p>ECCV 2024</p>
+  </div>
+
+  <div class="col text-center">
+    <p class="authors">
+      <a href="https://scholar.google.com/citations?user=zCBKqa8AAAAJ&hl=en">Zirui Wang</a>&nbsp;&nbsp;&nbsp;
+      <a href="https://scholar.google.com/citations?user=IVfbqkgAAAAJ&hl=en">Wenjing Bian</a>&nbsp;&nbsp;&nbsp;
+      <a href="http://www.robots.ox.ac.uk/~victor/">Victor Adrian Prisacariu</a>
+    </p>
+    <p class="institution">
+      University of Oxford
+    </p>
+  </div>
+
+  <div class="col text-center">
+    <a class="btn btn-secondary" href="https://arxiv.org/abs/2404.14409" role="button">Arxiv</a>
+    <a class="btn btn-secondary" href="https://www.youtube.com/watch?v=YEgwIsN6xa4" role="button">Video</a>
+    <a class="btn btn-secondary" href="https://github.com/ActiveVisionLab/CrossScore" role="button">Code</a>
+  </div>
+
+  <p>
+    <b>TLDR</b>:
+    This method evaluates an image by comparing it with multiple views of 
+    the same scene through cross-attention, eliminating the need for a 
+    pre-aligned ground truth image. 
+  </p>
+  <p>
+    <b>Application</b>: Evaluate rendered images from novel view 
+    synthesis (NVS) applications where ground truth references are unavailable.
+  </p>
+
+  <div class="col text-center">
+    <figure class="figure">
+      <embed src="assets/04_main_results.jpg" alt="main results", class="responsive-figure">
+      <figcaption class="figcaption_left">
+        We introduce an image assessment method that examines query images by 
+        referencing multiple views of the same scene, 
+        producing results termed <b>CrossScore</b> maps. 
+        
+        Our results show that CrossScore is closely correlated with SSIM 
+        across diverse datasets, without requiring pre-aligned 
+        ground truth images.
+        
+        <!-- Colour coding: 
+        <span style="color:brown;">red</span> represents the highest score, 
+        followed by 
+        <span style="color:orange;">orange</span>, 
+        <span style="color:green;">green</span>, and 
+        <span style="color:blue;">blue</span>, 
+        indicating decreasing scores respectively. -->
+      </figcaption>
+    </figure>
+  </div>
+
+  <div class="col text-center">
+    <p><b>Presentation at ECCV 2024</b></p>
+  </div>
+  <div class="video-container">
+  <div class="embed-responsive embed-responsive-16by9">
+    <iframe src="https://www.youtube.com/embed/YEgwIsN6xa4?si=st97NMy9BLlN2teb"  
+    frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
+    </iframe>
+  </div>
+  </div>
+
+
+  <h2>Abstract</h2>
+  <p>
+    We introduce a novel <i>Cross-Reference</i> image quality assessment 
+    method that effectively fills the gap in the image assessment 
+    landscape, complementing the array of established evaluation schemes -- 
+    ranging from
+    <i>Full-Reference</i> metrics like SSIM, 
+    <i>No-Reference</i> metrics such as NIQE, to 
+    <i>General-Reference</i> metrics including FID, and 
+    <i>Multi-Modal-Reference</i> metrics, <i>e.g.</i> CLIPScore.
+  </p>
+
+
+  <div class="col text-center">
+    <figure class="figure" style="max-width: 600px">
+      <embed src="assets/00_teaser.png" alt="IQA categories", class="responsive-figure">
+      <figcaption class="figcaption_left">
+        We propose a novel
+        <b><span style="color:orange;">cross-reference</span></b> (<b>CR</b>)
+        image quality assessment (IQA) scheme, which evaluates a query image 
+        using multiple unregistered reference images that are captured from 
+        different viewpoints. 
+        This approach sets a new research trajectory apart from conventional 
+        IQA schemes such as 
+        full-reference (<b>FR</b>), 
+        general-reference (<b>GR</b>), 
+        no-reference (<b>NR</b>), and 
+        multi-modal-reference (<b>MMR</b>).
+      </figcaption>
+    </figure>
+  </div>
+
+
+  <p>
+    Utilising a neural network with the cross-attention mechanism and a unique data collection 
+    pipeline from NVS optimisation, our method enables accurate image quality assessment without 
+    requiring ground truth references.
+    By comparing a query image against multiple views of the same scene, our method addresses 
+    the limitations of existing metrics in novel view synthesis (NVS) and similar tasks where 
+    direct reference images are unavailable.
+    Experimental results show that our method is closely correlated to the 
+    full-reference metric SSIM, while not requiring ground truth references.
+  </p>
+
+
+
+
+
+
+
+  <h2>Method</h2>
+  <p>
+  Our goal is to evaluate the quality of a query image, using a set of reference images 
+  that capture the same scene as the query image but from other viewpoints.
+  From the NVS application perspective, the query image is often a rendered image 
+  with artefacts, and the reference images consists of the real captured images.
+  </p>
+
+  <div class="col text-center">
+    <figure class="figure">
+      <embed src="assets/01_method.png" alt="Method Overview", class="responsive-figure">
+    
+      <figcaption class="figcaption_left">
+        Method Overview.
+        <b>Left</b>: Our NVS-based data engine that supplies query and reference images 
+        along with SSIM maps to drive the self-supervised training of our model.
+        <b>Right</b>: Our model that takes a query image and a set of reference images 
+        as input and predicts a score map for the query image.  
+      </figcaption>
+    </figure>
+  </div>
+  
+  <h3>Network</h3>
+  <p>
+    We propose a network that takes a query image and a set of reference images
+    and predict a dense score map for the query image. 
+    Our network consists of three components:
+  </p>
+  <ol>
+    <li> an image encoder which extracts feature maps from input images; </li>
+    <li> a cross-reference module that associates a query image with multi-view reference images; and </li>
+    <li> a score regression head that regresses a CrossScore for each pixel of the query image. </li>
+  </ol>
+  <p></p>
+    In practice, we adapt 
+    a pretrained DINOv2-small model as the image encoder, 
+    a Transformer Decoder for the cross-reference module, and 
+    a shallow MLP for the score regression head.
+  </p>
+
+  <h3>Self-supervised Training</h3>
+  <p>
+    We leverage existing NVS systems and abundant multi-view datasets to generate 
+    SSIM maps for our training.
+  </p>
+
+  <p>
+    Specifically, we select Neural Radiance Field (NeRF)-style NVS systems as 
+    our data engine.
+    Given a set of images, a NeRF recovers a neural representation of a scene by 
+    iteratively reconstructing the given image set with photometric losses.
+  </p>
+
+  <figure>
+    <video controls autoplay muted loop playsinline class="center_video">
+      <source src="assets/data_engine_animation.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+    <figcaption class="figcaption_left">
+      Our data engine generates SSIM maps and 
+      allows us to train our CrossScore network in a self-supervised manner.
+      Throughout the training of an NVS system, such as NeRF or 3DGS, the image
+      rendering quality becomes progressively better. 
+      This allows us to collect a large number of images with varying quality levels,
+      and their corresponding SSIM maps. 
+      With these images and SSIM maps, we can train our CrossScore network.
+    </figcaption>
+
+  </figure>
+
+  <p>
+    By rendering images with the camera parameters from the original captured 
+    image set at multiple NeRF training checkpoints, we generate a large number of 
+    images that contain various types of artefacts at various levels. 
+    From which, we compute SSIM maps between 
+    rendered images and corresponding real captured images, which serve as 
+    our training objectives.
+  </p>
+
+
+
+
+
+
+
+
+  <h2>Additional Results</h2>
+  <figure>
+    <video controls autoplay muted loop playsinline class="center_video">
+      <source src="assets/additional_results.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+    <figcaption class="figcaption_left">
+      Evaluating images rendered from a popular NVS method (Gaussian-Splatting)
+      using CrossScore and SSIM.
+      CrossScore is highly correlated with SSIM, while not requiring
+      ground truth images.
+    </figcaption>
+
+  </figure>
+  
+
+
+
+
+  <h2> Ablation: Enable and Disable Reference Images </h2>
+  <p>
+    Here, we show our method effectively leverage reference views while 
+    evaluating a query image.
+    With reference images enabled (ON), the score map predicted 
+    by our method contains more details than when reference images 
+    are disabled (OFF), where the model tends to assign 
+    a high score everywhere.
+  </p>
+  <div class="col text-center">
+    <figure class="figure">
+      <embed src="assets/02_ablation.png" alt="Ablation", class="responsive-figure">
+      <figcaption>
+        Ablation study on the importance of reference images.
+      </figcaption>
+    </figure>
+  </div>
+
+
+
+
+
+  <h2> Attention Weights Visualisation </h2>
+  <p>
+    We further illustrate that our model indeed checking related context 
+    in reference images, as evidenced by the visualisation of attention maps below.
+  </p>
+  <div class="col text-center">
+    <figure class="figure">
+      <embed src="assets/03_attn.png" alt="BLEFF thumbnails", class="responsive-figure">
+      <figcaption class="figcaption_left">
+        Attention weights visualisation of our model.
+        <b>Top left</b>: a query image with a region of interest (centre of image) 
+        highlighted with a <span style="color:magenta;">magenta</span> box.
+        
+        <b>Right column</b>: three reference images from our cross-reference 
+        set with attention maps overlaid. The attention maps illustrate the attention 
+        that is paid to predicting image quality at the query region.
+        
+        <span style="color:red;">Red</span> and 
+        <span style="color:blue;">blue</span> denote high and low 
+        attention weights respectively. 
+        Note that we use 5 reference images in our experiment, 
+        but only 3 are shown due to space constraint.
+        
+        <b>Bottom</b>: Predicted CrossScore map and SSIM map. 
+        
+        <span style="color:red;">Red</span> and 
+        <span style="color:blue;">blue</span> denote high and low 
+        quality image regions respectively.
+      </figcaption>
+    </figure>
+  </div>
+
+
+
+
+
+  <h2> Acknowledgement </h2>
+  <p>
+    This research is supported by an <a href="https://facebookresearch.github.io/projectaria_tools/docs/intro">ARIA</a> 
+    research gift grant from Meta Reality Lab.
+    We gratefully thank 
+    <a href="https://elliottwu.com/">Shangzhe Wu</a>, 
+    <a href="https://tengdahan.github.io/">Tengda Han</a>, 
+    <a href="https://scholar.google.com/citations?user=31eXgMYAAAAJ&hl=en">Zihang Lai</a> 
+    for insightful discussions, and 
+    <a href="https://portraits.keble.net/2022/michael-hobley">Michael Hobley</a> 
+    for proofreading.
+  </p>
+  
+
+
+  <h2>BibTeX</h2>
+  <pre>
+  @inproceedings{wang2024crossscore,
+    title={CrossScore: Towards Multi-View Image Evaluation and Scoring},
+    author={Zirui Wang and Wenjing Bian and Victor Adrian Prisacariu},
+    booktitle={ECCV},
+    year={2024}
+  }
+  </pre>
+
+</main>
+</html>
