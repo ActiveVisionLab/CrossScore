@@ -1,8 +1,5 @@
-import sys
 from pathlib import Path
 from datetime import timedelta
-
-sys.path.append(str(Path(__file__).parents[1]))
 
 import torch
 from torch.utils.data import DataLoader
@@ -16,11 +13,11 @@ import hydra
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig
 
-from core import CrossScoreLightningModule
-from dataloading.data_manager import get_dataset
-from dataloading.transformation.crop import CropperFactory
-from utils.io.images import ImageNetMeanStd
-from utils.check_config import ConfigChecker
+from task.core import CrossScoreLightningModule
+from crossscore.dataloading.data_manager import get_dataset
+from crossscore.dataloading.transformation.crop import CropperFactory
+from crossscore.utils.io.images import ImageNetMeanStd
+from crossscore.utils.check_config import ConfigChecker
 
 
 @hydra.main(version_base="1.3", config_path="../config", config_name="default")
