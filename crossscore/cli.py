@@ -52,6 +52,11 @@ Examples:
         help="GPU device indices (default: [0])",
     )
     parser.add_argument(
+        "--cpu",
+        action="store_true",
+        help="Force CPU mode (no GPU)",
+    )
+    parser.add_argument(
         "--out-dir",
         default=None,
         help="Output directory for results (default: auto-generated)",
@@ -66,6 +71,8 @@ Examples:
 
     from crossscore.api import score
 
+    devices = "cpu" if args.cpu else args.devices
+
     results = score(
         query_dir=args.query_dir,
         reference_dir=args.reference_dir,
@@ -74,7 +81,7 @@ Examples:
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         resize_short_side=args.resize_short_side,
-        devices=args.devices,
+        devices=devices,
         out_dir=args.out_dir,
         write_outputs=not args.no_write,
     )

@@ -2,7 +2,6 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 import numpy as np
 import torch
-import wandb
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from torchvision.utils import make_grid
@@ -159,6 +158,7 @@ class BatchVisualiserRef(BatchVisualiserBase):
         ).convert("RGB")
 
         plt.close()
+        import wandb
         out_img = wandb.Image(out_img, file_type="jpg")
         return out_img
 
@@ -306,6 +306,7 @@ class BatchVisualiserRefAttnMap(BatchVisualiserBase):
         ).convert("RGB")
 
         plt.close()
+        import wandb
         out_img = wandb.Image(out_img, file_type="jpg")
         return out_img
 
@@ -390,6 +391,7 @@ class BatchVisualiserRefFree(BatchVisualiserBase):
         ).convert("RGB")
 
         plt.close()
+        import wandb
         out_img = wandb.Image(out_img, file_type="jpg")
         return out_img
 

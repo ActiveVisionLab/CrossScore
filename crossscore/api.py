@@ -25,8 +25,12 @@ def _build_config(
     out_dir: Optional[str] = None,
 ) -> OmegaConf:
     """Build an OmegaConf config object for prediction."""
+    use_gpu = torch.cuda.is_available() and devices != "cpu"
     if devices is None:
-        devices = [0] if torch.cuda.is_available() else []
+        devices = [0] if use_gpu else "auto"
+    elif devices == "cpu":
+        devices = "auto"
+        use_gpu = False
 
     config_dir = Path(__file__).parent / "config"
     # Load base configs
@@ -45,8 +49,8 @@ def _build_config(
     base_cfg.data.loader.validation.batch_size = batch_size
     base_cfg.data.loader.validation.num_workers = num_workers
     base_cfg.trainer.devices = devices
-    base_cfg.trainer.precision = "16-mixed"
-    base_cfg.trainer.accelerator = "gpu" if torch.cuda.is_available() else "cpu"
+    base_cfg.trainer.precision = "16-mixed" if use_gpu else "32-true"
+    base_cfg.trainer.accelerator = "gpu" if use_gpu else "cpu"
 
     if out_dir is not None:
         base_cfg.logger.predict.out_dir = out_dir
@@ -166,7 +170,7 @@ def score(
     # Build model and trainer
     model = CrossScoreLightningModule(cfg)
 
-    NUM_GPUS = len(cfg.trainer.devices)
+    NUM_GPUS = len(cfg.trainer.devices) if isinstance(cfg.trainer.devices, list) else 0
     if NUM_GPUS > 1:
         from lightning.pytorch.strategies import DDPStrategy
         strategy = DDPStrategy(find_unused_parameters=False, static_graph=True)

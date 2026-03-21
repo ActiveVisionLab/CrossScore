@@ -1,7 +1,6 @@
 from pathlib import Path
 import torch
 import lightning
-import wandb
 from transformers import Dinov2Config, Dinov2Model
 from omegaconf import DictConfig, OmegaConf
 from lightning.pytorch.utilities import rank_zero_only
@@ -350,6 +349,8 @@ class CrossScoreLightningModule(lightning.LightningModule):
         # logger vis X batches histogram
         if self.global_step % self.cfg.logger.vis_histogram_every_n_train_steps == 0:
             if self.cfg.model.do_reference_cross:
+                import wandb
+
                 self.logger.experiment.log(
                     {
                         "train/score_histogram_cross": wandb.Histogram(
