@@ -75,7 +75,7 @@ class CrossScoreNet(torch.nn.Module):
 
         if norm_img:
             img_mean = self.img_mean_std[None, :3, None, None]
-            img_std = self.img_mean_std[None, :3, None, None]
+            img_std = self.img_mean_std[None, 3:, None, None]
             query_img = (query_img - img_mean) / img_std
             if ref_cross_imgs is not None:
                 ref_cross_imgs = (ref_cross_imgs - img_mean[:, None]) / img_std[:, None]
