@@ -3,8 +3,7 @@ import sys
 from pathlib import Path
 import torch
 
-sys.path.append(str(Path(__file__).parents[1]))
-from utils.check_config import check_metric_prediction_config
+from crossscore.utils.check_config import check_metric_prediction_config
 
 
 class RegressionLayer(torch.nn.Module):

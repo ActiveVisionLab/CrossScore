@@ -1,8 +1,5 @@
 from datetime import datetime
-import sys
 from pathlib import Path
-
-sys.path.append(str(Path(__file__).parents[1]))
 
 import torch
 from torch.utils.data import DataLoader
@@ -12,10 +9,10 @@ from lightning.pytorch.strategies import DDPStrategy
 import hydra
 from omegaconf import DictConfig, open_dict
 
-from core import CrossScoreLightningModule
-from dataloading.dataset.simple_reference import SimpleReference
-from dataloading.transformation.crop import CropperFactory
-from utils.io.images import ImageNetMeanStd
+from task.core import CrossScoreLightningModule
+from crossscore.dataloading.dataset.simple_reference import SimpleReference
+from crossscore.dataloading.transformation.crop import CropperFactory
+from crossscore.utils.io.images import ImageNetMeanStd
 
 
 @hydra.main(version_base="1.3", config_path="../config", config_name="default_predict")

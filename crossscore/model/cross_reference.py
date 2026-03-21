@@ -4,7 +4,7 @@ from .customised_transformer.transformer import (
     TransformerDecoderCustomised,
 )
 from .regression_layer import RegressionLayer
-from utils.misc.image import jigsaw_to_image
+from crossscore.utils.misc.image import jigsaw_to_image
 
 
 class CrossReferenceNet(torch.nn.Module):

@@ -3,8 +3,7 @@ from pathlib import Path
 import torch
 from omegaconf import OmegaConf
 
-sys.path.append(str(Path(__file__).parents[2]))
-from dataloading.dataset.nvs_dataset import NvsDataset, NeighbourSelector, vis_batch
+from crossscore.dataloading.dataset.nvs_dataset import NvsDataset, NeighbourSelector, vis_batch
 
 
 class SimpleReference(NvsDataset):
@@ -89,8 +88,8 @@ if __name__ == "__main__":
     from lightning import seed_everything
     from torchvision.transforms import v2 as T
     from tqdm import tqdm
-    from dataloading.transformation.crop import CropperFactory
-    from utils.io.images import ImageNetMeanStd
+    from crossscore.dataloading.transformation.crop import CropperFactory
+    from crossscore.utils.io.images import ImageNetMeanStd
     from omegaconf import OmegaConf
 
     seed_everything(1)

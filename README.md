@@ -13,13 +13,81 @@ University of Oxford.
 
 
 ## Table of Content
-- [Environment](#Environment)
+- [Installation (pip)](#installation-pip)
+- [Quick Start](#quick-start)
+- [Environment (conda, legacy)](#environment-conda-legacy)
 - [Data](#Data)
 - [Training](#Training)
 - [Inferencing](#Inferencing)
 
-## Environment
-We provide a `environment.yaml` file to set up a `conda` environment:
+## Installation (pip)
+
+**Step 1**: Install PyTorch with your preferred CUDA version (see [pytorch.org](https://pytorch.org/get-started/locally/)):
+```bash
+# Example: PyTorch with CUDA 12.1
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+
+# Example: PyTorch with CUDA 11.8
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+
+# Example: CPU only
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+```
+
+**Step 2**: Install CrossScore:
+```bash
+pip install crossscore
+```
+
+Or install from source:
+```bash
+git clone https://github.com/ActiveVisionLab/CrossScore.git
+cd CrossScore
+pip install -e .
+```
+
+> **Why install PyTorch separately?** PyTorch distributions are coupled with specific CUDA versions. By letting you install PyTorch first, we avoid version conflicts with your system's CUDA setup. CrossScore works with PyTorch 2.0+ and any CUDA version it supports.
+
+## Quick Start
+
+### Python API
+```python
+import crossscore
+
+# Score query images against reference images
+# Model checkpoint is auto-downloaded on first use (~129MB)
+results = crossscore.score(
+    query_dir="path/to/query/images",
+    reference_dir="path/to/reference/images",
+)
+
+# Per-image mean scores
+print(results["scores"])  # [0.82, 0.91, 0.76, ...]
+
+# Score map tensors (pixel-level quality maps)
+for score_map in results["score_maps"]:
+    print(score_map.shape)  # (batch_size, H, W)
+
+# Colorized score map PNGs are written to results["out_dir"]
+```
+
+### Command Line
+```bash
+crossscore --query-dir path/to/queries --reference-dir path/to/references
+
+# With options
+crossscore --query-dir renders/ --reference-dir gt/ --metric-type mae --batch-size 4
+
+# Force CPU mode
+crossscore --query-dir renders/ --reference-dir gt/ --cpu
+```
+
+### Environment Variables
+- `CROSSSCORE_CKPT_PATH`: Use a specific local checkpoint instead of auto-downloading
+- `CROSSSCORE_CACHE_DIR`: Custom cache directory (default: `~/.cache/crossscore`)
+
+## Environment (conda, legacy)
+We also provide a `environment.yaml` file to set up a `conda` environment:
 ```bash
 git clone https://github.com/ActiveVisionLab/CrossScore.git
 cd CrossScore
@@ -86,7 +154,7 @@ on our project page.
 - [ ] Create a HuggingFace demo page.
 - [ ] Release ECCV quantitative results related scripts.
 - [x] Release [data processing scripts](https://github.com/ziruiw-dev/CrossScore-3DGS-Preprocessing)
-- [ ] Release PyPI and Conda package.
+- [x] Release PyPI package.
 
 ## Acknowledgement
 This research is supported by an 
