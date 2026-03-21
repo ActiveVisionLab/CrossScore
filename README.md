@@ -56,9 +56,9 @@ In our actual training, our model is trained using MFR that pre-processed by thr
 [TensoRF](https://docs.nerf.studio/nerfology/methods/tensorf.html), and 
 [NeRFacto](https://docs.nerf.studio/nerfology/methods/nerfacto.html).
 Due to the preprocessed file size (~2TB), it is challenging to directly share
-this pre-processed data. ~~One work around is to release a data pre-processing script
-for MFR, which we are still tidying up.
-**We aim to release the pre-processing script in Dec 2024.**~~
+this pre-processed data. One work around is to release a data pre-processing script
+for MFR.
+~~**We aim to release the pre-processing script in Dec 2024.**~~
 We have released the data pre-processing script at [this repository](https://github.com/ziruiw-dev/CrossScore-3DGS-Preprocessing).
 
 ## Training
