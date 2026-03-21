@@ -48,9 +48,6 @@ dependencies = [
     # Configuration
     "omegaconf>=2.3.0",
 
-    # Model download
-    "huggingface-hub>=0.20.0",
-
     # Image processing
     "Pillow>=9.0.0",
     "imageio>=2.20.0",

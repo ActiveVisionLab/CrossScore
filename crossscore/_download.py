@@ -1,10 +1,13 @@
 """Utilities for downloading CrossScore model checkpoints."""
 
 import os
+import urllib.request
+import shutil
 from pathlib import Path
 
+# Download directly from GitHub (served via Git LFS)
 CHECKPOINT_URL = (
-    "https://huggingface.co/ActiveVisionLab/CrossScore/resolve/main/CrossScore-v1.0.0.ckpt"
+    "https://github.com/ActiveVisionLab/CrossScore/raw/main/ckpt/CrossScore-v1.0.0.ckpt"
 )
 CHECKPOINT_FILENAME = "CrossScore-v1.0.0.ckpt"
 
@@ -19,9 +22,10 @@ def get_cache_dir() -> Path:
 def get_checkpoint_path() -> str:
     """Get path to the CrossScore checkpoint, downloading it if necessary.
 
-    Downloads from HuggingFace Hub on first use and caches locally.
-    Set CROSSSCORE_CACHE_DIR environment variable to customize cache location.
-    Set CROSSSCORE_CKPT_PATH to use a specific local checkpoint file.
+    Downloads from GitHub (Git LFS) on first use and caches locally at
+    ~/.cache/crossscore/. Set environment variables to customize:
+        CROSSSCORE_CKPT_PATH - use a specific local checkpoint file
+        CROSSSCORE_CACHE_DIR - custom cache directory
 
     Returns:
         Path to the checkpoint file.
@@ -39,33 +43,29 @@ def get_checkpoint_path() -> str:
     if ckpt_path.exists():
         return str(ckpt_path)
 
-    print(f"Downloading CrossScore checkpoint to {ckpt_path}...")
-    print(f"  Source: {CHECKPOINT_URL}")
-    print("  (Set CROSSSCORE_CKPT_PATH to use a local checkpoint instead)")
+    print(f"Downloading CrossScore checkpoint (~129MB)...")
+    print(f"  From: {CHECKPOINT_URL}")
+    print(f"  To:   {ckpt_path}")
+    print("  (Set CROSSSCORE_CKPT_PATH to skip download and use a local file)")
 
+    tmp_path = str(ckpt_path) + ".tmp"
     try:
-        from huggingface_hub import hf_hub_download
+        urllib.request.urlretrieve(CHECKPOINT_URL, tmp_path, _download_progress)
+        os.rename(tmp_path, str(ckpt_path))
+    except Exception:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+        raise
 
-        downloaded_path = hf_hub_download(
-            repo_id="ActiveVisionLab/CrossScore",
-            filename=CHECKPOINT_FILENAME,
-            local_dir=str(cache_dir),
-        )
-        return downloaded_path
-    except ImportError:
-        # Fallback to urllib if huggingface_hub not installed
-        import urllib.request
-        import shutil
-
-        tmp_path = str(ckpt_path) + ".tmp"
-        try:
-            with urllib.request.urlopen(CHECKPOINT_URL) as response, open(tmp_path, "wb") as out:
-                shutil.copyfileobj(response, out)
-            os.rename(tmp_path, str(ckpt_path))
-        except Exception:
-            if os.path.exists(tmp_path):
-                os.remove(tmp_path)
-            raise
-
-    print(f"  Download complete: {ckpt_path}")
+    print(f"\n  Download complete.")
     return str(ckpt_path)
+
+
+def _download_progress(block_count, block_size, total_size):
+    """Progress callback for urlretrieve."""
+    downloaded = block_count * block_size
+    if total_size > 0:
+        pct = min(100, downloaded * 100 // total_size)
+        mb_done = downloaded / (1024 * 1024)
+        mb_total = total_size / (1024 * 1024)
+        print(f"\r  {mb_done:.1f}/{mb_total:.1f} MB ({pct}%)", end="", flush=True)
