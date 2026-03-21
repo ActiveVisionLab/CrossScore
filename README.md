@@ -13,13 +13,71 @@ University of Oxford.
 
 
 ## Table of Content
-- [Environment](#Environment)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Environment (conda, legacy)](#environment-conda-legacy)
 - [Data](#Data)
 - [Training](#Training)
 - [Inferencing](#Inferencing)
 
-## Environment
-We provide a `environment.yaml` file to set up a `conda` environment:
+## Installation
+
+### GPU (with CUDA) — one line
+```bash
+git clone https://github.com/ActiveVisionLab/CrossScore.git
+cd CrossScore
+conda env create -f environment_gpu.yaml && conda activate CrossScore
+```
+This installs Python, PyTorch with CUDA 12.1, and all CrossScore dependencies in a single command.
+
+### CPU only — one line
+```bash
+git clone https://github.com/ActiveVisionLab/CrossScore.git
+cd CrossScore
+conda env create -f environment_cpu.yaml && conda activate CrossScore
+```
+
+> **Note:** If you use the CPU install, CrossScore will print a reminder at runtime on how to switch to the GPU version for faster inference.
+
+## Quick Start
+
+### Python API
+```python
+from crossscore.api import score
+
+# Score query images against reference images
+# Model checkpoint is auto-downloaded on first use (~129MB)
+results = score(
+    query_dir="path/to/query/images",
+    reference_dir="path/to/reference/images",
+)
+
+# Per-image mean scores
+print(results["scores"])  # [0.82, 0.91, 0.76, ...]
+
+# Score map tensors (pixel-level quality maps)
+for score_map in results["score_maps"]:
+    print(score_map.shape)  # (batch_size, H, W)
+
+# Colorized score map PNGs are written to results["out_dir"]
+```
+
+### Command Line
+```bash
+python -m crossscore.cli --query-dir path/to/queries --reference-dir path/to/references
+
+# With options
+python -m crossscore.cli --query-dir renders/ --reference-dir gt/ --metric-type mae --batch-size 4
+
+# Force CPU mode
+python -m crossscore.cli --query-dir renders/ --reference-dir gt/ --cpu
+```
+
+### Environment Variables
+- `CROSSSCORE_CKPT_PATH`: Use a specific local checkpoint instead of auto-downloading
+
+## Environment (conda, legacy)
+For training and development, we provide the full pinned `environment.yaml`:
 ```bash
 git clone https://github.com/ActiveVisionLab/CrossScore.git
 cd CrossScore
@@ -86,7 +144,7 @@ on our project page.
 - [ ] Create a HuggingFace demo page.
 - [ ] Release ECCV quantitative results related scripts.
 - [x] Release [data processing scripts](https://github.com/ziruiw-dev/CrossScore-3DGS-Preprocessing)
-- [ ] Release PyPI and Conda package.
+- [x] Release Conda package.
 
 ## Acknowledgement
 This research is supported by an 

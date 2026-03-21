@@ -1,0 +1,20 @@
+name: CrossScore
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.9
+  # PyTorch CPU-only
+  - pytorch>=2.0.0
+  - torchvision>=0.15.0
+  - cpuonly
+  # CrossScore dependencies
+  - transformers>=4.30.0
+  - omegaconf>=2.3.0
+  - pillow>=9.0.0
+  - imageio>=2.20.0
+  - numpy>=1.22.0
+  - matplotlib>=3.5.0
+  - tqdm>=4.60.0
+  - huggingface_hub>=0.14.0
