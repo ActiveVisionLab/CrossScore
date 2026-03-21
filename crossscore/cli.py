@@ -1,7 +1,6 @@
 """Command-line interface for CrossScore."""
 
 import argparse
-import sys
 
 
 def main():
@@ -12,7 +11,7 @@ def main():
 Examples:
   crossscore --query-dir path/to/queries --reference-dir path/to/references
   crossscore --query-dir renders/ --reference-dir gt/ --metric-type mae --batch-size 4
-  crossscore --query-dir renders/ --reference-dir gt/ --ckpt-path my_model.ckpt
+  crossscore --query-dir renders/ --reference-dir gt/ --cpu
 """,
     )
     parser.add_argument(
@@ -45,11 +44,9 @@ Examples:
         help="Resize short side to this value, -1 to disable (default: 518)",
     )
     parser.add_argument(
-        "--devices",
-        type=int,
-        nargs="+",
+        "--device",
         default=None,
-        help="GPU device indices (default: [0])",
+        help="Device string, e.g. 'cuda', 'cuda:0', 'cpu' (default: auto-detect)",
     )
     parser.add_argument(
         "--cpu",
@@ -59,19 +56,19 @@ Examples:
     parser.add_argument(
         "--out-dir",
         default=None,
-        help="Output directory for results (default: auto-generated)",
+        help="Output directory for results (default: ./crossscore_output)",
     )
     parser.add_argument(
         "--no-write",
         action="store_true",
-        help="Do not write output files to disk",
+        help="Do not write score map images to disk",
     )
 
     args = parser.parse_args()
 
     from crossscore.api import score
 
-    devices = "cpu" if args.cpu else args.devices
+    device = "cpu" if args.cpu else args.device
 
     results = score(
         query_dir=args.query_dir,
@@ -81,15 +78,20 @@ Examples:
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         resize_short_side=args.resize_short_side,
-        devices=devices,
+        device=device,
         out_dir=args.out_dir,
-        write_outputs=not args.no_write,
+        write_score_maps=not args.no_write,
     )
 
-    n_maps = sum(s.shape[0] for s in results["score_maps"]) if results["score_maps"] else 0
-    print(f"\nCrossScore completed: {n_maps} score maps generated")
-    if "out_dir" in results and results["out_dir"]:
-        print(f"Results written to: {results['out_dir']}")
+    n_images = len(results["scores"])
+    print(f"\nCrossScore completed: {n_images} images scored")
+    if results["scores"]:
+        mean_score = sum(results["scores"]) / len(results["scores"])
+        print(f"Mean score: {mean_score:.4f}")
+        for i, s in enumerate(results["scores"]):
+            print(f"  Image {i}: {s:.4f}")
+    if "out_dir" in results:
+        print(f"Score maps written to: {results['out_dir']}")
 
 
 if __name__ == "__main__":

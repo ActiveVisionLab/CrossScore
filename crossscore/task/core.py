@@ -1,23 +1,10 @@
-from pathlib import Path
+"""CrossScoreNet: the core neural network for CrossScore inference."""
+
 import torch
-import lightning
 from transformers import Dinov2Config, Dinov2Model
-from omegaconf import DictConfig, OmegaConf
-from lightning.pytorch.utilities import rank_zero_only
-from crossscore.utils.evaluation.metric import abs2psnr, correlation
-from crossscore.utils.evaluation.metric_logger import (
-    MetricLoggerScalar,
-    MetricLoggerHistogram,
-    MetricLoggerCorrelation,
-    MetricLoggerImg,
-)
-from crossscore.utils.plot.batch_visualiser import BatchVisualiserFactory
+from omegaconf import OmegaConf
+
 from crossscore.utils.io.images import ImageNetMeanStd
-from crossscore.utils.io.batch_writer import BatchWriter
-from crossscore.utils.io.score_summariser import (
-    SummaryWriterPredictedOnline,
-    SummaryWriterPredictedOnlineTestPrediction,
-)
 from crossscore.model.cross_reference import CrossReferenceNet
 from crossscore.model.positional_encoding import MultiViewPosionalEmbeddings
 
@@ -27,8 +14,6 @@ class CrossScoreNet(torch.nn.Module):
         super().__init__()
         self.cfg = cfg
 
-        # used in 1. denormalising images for visualisation
-        # and 2. normalising images for training when required
         img_norm_stat = ImageNetMeanStd()
         self.register_buffer(
             "img_mean_std", torch.tensor([*img_norm_stat.mean, *img_norm_stat.std])
@@ -58,9 +43,9 @@ class CrossScoreNet(torch.nn.Module):
         self,
         query_img,
         ref_cross_imgs,
-        need_attn_weights,
-        need_attn_weights_head_id,
-        norm_img,
+        need_attn_weights=False,
+        need_attn_weights_head_id=0,
+        norm_img=False,
     ):
         """
         :param query_img:       (B, 3, H, W)
@@ -160,355 +145,42 @@ class CrossScoreNet(torch.nn.Module):
         return featmaps
 
 
-class CrossScoreLightningModule(lightning.LightningModule):
-    def __init__(self, cfg: DictConfig):
-        super().__init__()
-        self.cfg = cfg
+def load_model(ckpt_path: str, device: str = "cpu") -> CrossScoreNet:
+    """Load a CrossScoreNet model from a Lightning or direct checkpoint.
 
-        # write config to wandb
-        self.save_hyperparameters(OmegaConf.to_container(self.cfg, resolve=True))
+    Args:
+        ckpt_path: Path to the .ckpt file.
+        device: Device to load the model on.
 
-        # init my network
-        self.model = CrossScoreNet(cfg=self.cfg)
+    Returns:
+        CrossScoreNet model in eval mode.
+    """
+    checkpoint = torch.load(ckpt_path, map_location=device, weights_only=False)
 
-        # init visualiser
-        self.visualiser = BatchVisualiserFactory(self.cfg, self.model.img_mean_std)()
+    # Extract config from checkpoint (saved by Lightning's save_hyperparameters)
+    if "hyper_parameters" in checkpoint:
+        cfg = OmegaConf.create(checkpoint["hyper_parameters"])
+    else:
+        # Fallback: use default config
+        from pathlib import Path
 
-        # init loss fn
-        if self.cfg.model.loss.fn == "l1":
-            self.loss_fn = torch.nn.L1Loss()
-            self.to_psnr_fn = abs2psnr
+        config_dir = Path(__file__).parent.parent / "config"
+        model_cfg = OmegaConf.load(config_dir / "model" / "model.yaml")
+        cfg = OmegaConf.create({"model": model_cfg})
+
+    model = CrossScoreNet(cfg)
+
+    # Handle Lightning checkpoint format (keys prefixed with "model.")
+    state_dict = checkpoint.get("state_dict", checkpoint)
+    new_state_dict = {}
+    for k, v in state_dict.items():
+        # Strip "model." prefix from Lightning checkpoint keys
+        if k.startswith("model."):
+            new_state_dict[k[6:]] = v
         else:
-            raise NotImplementedError
+            new_state_dict[k] = v
 
-        # logging related names
-        self.ref_mode_names = []
-        if self.cfg.model.do_reference_cross:
-            self.ref_mode_names.append("ref_cross")
-
-    def on_fit_start(self):
-        # reset logging cache
-        if self.global_rank == 0:
-            self._reset_logging_cache_train()
-        self._reset_logging_cache_validation()
-
-        self.frame_score_summariser = SummaryWriterPredictedOnline(
-            metric_type=self.cfg.model.predict.metric.type,
-            metric_min=self.cfg.model.predict.metric.min,
-        )
-
-    def on_test_start(self):
-        Path(self.cfg.logger.test.out_dir, "vis").mkdir(parents=True, exist_ok=True)
-        if self.cfg.logger.test.write.flag.batch:
-            self.batch_writer = BatchWriter(self.cfg, "test", self.model.img_mean_std)
-        else:
-            self.batch_writer = None
-
-        self.frame_score_summariser = SummaryWriterPredictedOnlineTestPrediction(
-            metric_type=self.cfg.model.predict.metric.type,
-            metric_min=self.cfg.model.predict.metric.min,
-            dir_out=self.cfg.logger.test.out_dir,
-        )
-
-    def on_predict_start(self):
-        Path(self.cfg.logger.predict.out_dir, "vis").mkdir(parents=True, exist_ok=True)
-        if self.cfg.logger.predict.write.flag.batch:
-            self.batch_writer = BatchWriter(self.cfg, "predict", self.model.img_mean_std)
-        else:
-            self.batch_writer = None
-
-        self.frame_score_summariser = SummaryWriterPredictedOnlineTestPrediction(
-            metric_type=self.cfg.model.predict.metric.type,
-            metric_min=self.cfg.model.predict.metric.min,
-            dir_out=self.cfg.logger.predict.out_dir,
-        )
-
-    def _reset_logging_cache_train(self):
-        self.train_cache = {
-            "loss": {
-                k: MetricLoggerScalar(max_length=self.cfg.logger.cache_size.train.n_scalar)
-                for k in ["final", "reg_self", "reg_cross"] + self.ref_mode_names
-            },
-            "correlation": {
-                k: MetricLoggerCorrelation(max_length=self.cfg.logger.cache_size.train.n_scalar)
-                for k in self.ref_mode_names
-            },
-            "map": {
-                "score": {
-                    k: MetricLoggerHistogram(max_length=self.cfg.logger.cache_size.train.n_scalar)
-                    for k in self.ref_mode_names
-                },
-                "l1_diff": {
-                    k: MetricLoggerHistogram(max_length=self.cfg.logger.cache_size.train.n_scalar)
-                    for k in self.ref_mode_names
-                },
-                "delta": {
-                    k: MetricLoggerHistogram(max_length=self.cfg.logger.cache_size.train.n_scalar)
-                    for k in ["self", "cross"]
-                },
-            },
-        }
-
-    def _reset_logging_cache_validation(self):
-        self.validation_cache = {
-            "loss": {
-                k: MetricLoggerScalar(max_length=None)
-                for k in ["final", "reg_self", "reg_cross"] + self.ref_mode_names
-            },
-            "correlation": {
-                k: MetricLoggerCorrelation(max_length=None) for k in self.ref_mode_names
-            },
-            "fig": {k: MetricLoggerImg(max_length=None) for k in ["batch"]},
-        }
-
-    def _core_step(self, batch, batch_idx, skip_loss=False):
-        outputs = self.model(
-            query_img=batch["query/img"],  # (B, C, H, W)
-            ref_cross_imgs=batch.get("reference/cross/imgs", None),  # (B, N_ref_cross, C, H, W)
-            need_attn_weights=self.cfg.model.need_attn_weights,
-            need_attn_weights_head_id=self.cfg.model.need_attn_weights_head_id,
-            norm_img=False,
-        )
-
-        if skip_loss:  # only used in predict_step
-            return outputs
-
-        score_map = batch["query/score_map"]  # (B, H, W)
-
-        loss = []
-        # cross reference model predicts
-        if self.cfg.model.do_reference_cross:
-            score_map_cross = outputs["score_map_ref_cross"]  # (B, H, W)
-            l1_diff_map_cross = torch.abs(score_map_cross - score_map)  # (B, H, W)
-            if self.cfg.model.loss.fn == "l1":
-                loss_cross = l1_diff_map_cross.mean()
-            else:
-                loss_cross = self.loss_fn(score_map_cross, score_map)
-            outputs["loss_cross"] = loss_cross
-            outputs["l1_diff_map_ref_cross"] = l1_diff_map_cross
-            loss.append(loss_cross)
-
-        loss = torch.stack(loss).sum()
-        outputs["loss"] = loss
-        return outputs
-
-    def training_step(self, batch, batch_idx):
-        outputs = self._core_step(batch, batch_idx)
-        return outputs
-
-    def validation_step(self, batch, batch_idx):
-        outputs = self._core_step(batch, batch_idx)
-        return outputs
-
-    def test_step(self, batch, batch_idx):
-        outputs = self._core_step(batch, batch_idx)
-        return outputs
-
-    def predict_step(self, batch, batch_idx):
-        outputs = self._core_step(batch, batch_idx, skip_loss=True)
-        return outputs
-
-    @rank_zero_only
-    def on_train_batch_end(self, outputs, batch, batch_idx):
-        self.train_cache["loss"]["final"].update(outputs["loss"])
-
-        if self.cfg.model.do_reference_cross:
-            self.train_cache["loss"]["ref_cross"].update(outputs["loss_cross"])
-            self.train_cache["correlation"]["ref_cross"].update(
-                outputs["score_map_ref_cross"], batch["query/score_map"]
-            )
-            self.train_cache["map"]["score"]["ref_cross"].update(outputs["score_map_ref_cross"])
-            self.train_cache["map"]["l1_diff"]["ref_cross"].update(outputs["l1_diff_map_ref_cross"])
-
-        # logger vis batch
-        if self.global_step % self.cfg.logger.vis_imgs_every_n_train_steps == 0:
-            fig = self.visualiser.vis(batch, outputs)
-            self.logger.experiment.log({"train_batch": fig})
-
-        # logger vis X batches statics
-        if self.global_step % self.cfg.logger.vis_scalar_every_n_train_steps == 0:
-            # log loss
-            tmp_loss = self.train_cache["loss"]["final"].compute()
-            self.log("train/loss", tmp_loss, prog_bar=True)
-
-            if self.cfg.model.do_reference_cross:
-                tmp_loss_cross = self.train_cache["loss"]["ref_cross"].compute()
-                self.log("train/loss_cross", tmp_loss_cross)
-
-            # log psnr
-            if self.cfg.model.do_reference_cross:
-                self.log("train/psnr_cross", self.to_psnr_fn(tmp_loss_cross))
-
-            # log correlation
-            if self.cfg.model.do_reference_cross:
-                self.log(
-                    "train/correlation_cross",
-                    self.train_cache["correlation"]["ref_cross"].compute(),
-                )
-
-        # logger vis X batches histogram
-        if self.global_step % self.cfg.logger.vis_histogram_every_n_train_steps == 0:
-            if self.cfg.model.do_reference_cross:
-                import wandb
-
-                self.logger.experiment.log(
-                    {
-                        "train/score_histogram_cross": wandb.Histogram(
-                            np_histogram=self.train_cache["map"]["score"]["ref_cross"].compute()
-                        ),
-                        "train/l1_diff_histogram_cross": wandb.Histogram(
-                            np_histogram=self.train_cache["map"]["l1_diff"]["ref_cross"].compute()
-                        ),
-                    }
-                )
-
-    def on_validation_batch_end(self, outputs, batch, batch_idx):
-        self.validation_cache["loss"]["final"].update(outputs["loss"])
-
-        if self.cfg.model.do_reference_cross:
-            self.validation_cache["loss"]["ref_cross"].update(outputs["loss_cross"])
-            self.validation_cache["correlation"]["ref_cross"].update(
-                outputs["score_map_ref_cross"], batch["query/score_map"]
-            )
-
-        self.frame_score_summariser.update(batch_input=batch, batch_output=outputs)
-
-        if batch_idx < self.cfg.logger.cache_size.validation.n_fig:
-            fig = self.visualiser.vis(batch, outputs)
-            self.validation_cache["fig"]["batch"].update(fig)
-
-    def on_test_batch_end(self, outputs, batch, batch_idx):
-        results = {"test/loss": outputs["loss"]}
-
-        if self.cfg.model.do_reference_cross:
-            corr = correlation(outputs["score_map_ref_cross"], batch["query/score_map"])
-            psnr = self.to_psnr_fn(outputs["loss_cross"])
-            results["test/loss_cross"] = outputs["loss_cross"]
-            results["test/corr_cross"] = corr
-            results["test/psnr_cross"] = psnr
-
-        self.log_dict(
-            results,
-            on_step=self.cfg.logger.test.on_step,
-            sync_dist=self.cfg.logger.test.sync_dist,
-        )
-
-        self.frame_score_summariser.update(batch_input=batch, batch_output=outputs)
-
-        # write image to vis
-        if (
-            self.cfg.logger.test.write.config.vis_img_every_n_steps > 0
-            and batch_idx % self.cfg.logger.test.write.config.vis_img_every_n_steps == 0
-        ):
-            fig = self.visualiser.vis(batch, outputs)
-            fig.image.save(
-                Path(
-                    self.cfg.logger.test.out_dir,
-                    "vis",
-                    f"r{self.local_rank}_B{str(batch_idx).zfill(4)}_b{0}.png",
-                )
-            )
-
-        if self.cfg.logger.test.write.flag.batch:
-            self.batch_writer.write_out(
-                batch_input=batch,
-                batch_output=outputs,
-                local_rank=self.local_rank,
-                batch_idx=batch_idx,
-            )
-
-    def on_predict_batch_end(self, outputs, batch, batch_idx):
-        self.frame_score_summariser.update(batch_input=batch, batch_output=outputs)
-
-        # write image to vis
-        if (
-            self.cfg.logger.predict.write.config.vis_img_every_n_steps > 0
-            and batch_idx % self.cfg.logger.predict.write.config.vis_img_every_n_steps == 0
-        ):
-            fig = self.visualiser.vis(batch, outputs)
-            fig.image.save(
-                Path(
-                    self.cfg.logger.predict.out_dir,
-                    "vis",
-                    f"r{self.local_rank}_B{str(batch_idx).zfill(4)}_b{0}.png",
-                )
-            )
-
-        if self.cfg.logger.predict.write.flag.batch:
-            self.batch_writer.write_out(
-                batch_input=batch,
-                batch_output=outputs,
-                local_rank=self.local_rank,
-                batch_idx=batch_idx,
-            )
-
-    @rank_zero_only
-    def on_train_epoch_end(self):
-        self._reset_logging_cache_train()
-
-    def on_validation_epoch_end(self):
-        sync_dist = True
-        self.log(
-            "validation/loss",
-            self.validation_cache["loss"]["final"].compute(),
-            prog_bar=True,
-            sync_dist=sync_dist,
-        )
-        self.logger.experiment.log(
-            {"validation_batch": self.validation_cache["fig"]["batch"].compute()},
-        )
-
-        if self.cfg.model.do_reference_cross:
-            self.log(
-                "validation/loss_cross",
-                self.validation_cache["loss"]["ref_cross"].compute(),
-                sync_dist=sync_dist,
-            )
-            self.log(
-                "validation/correlation_cross",
-                self.validation_cache["correlation"]["ref_cross"].compute(),
-                sync_dist=sync_dist,
-            )
-            self.log(
-                "validation/psnr_cross",
-                self.to_psnr_fn(self.validation_cache["loss"]["ref_cross"].compute()),
-                sync_dist=sync_dist,
-            )
-
-        self._reset_logging_cache_validation()
-        self.frame_score_summariser.reset()
-
-    def on_test_epoch_end(self):
-        self.frame_score_summariser.summarise()
-
-    def on_predict_epoch_end(self):
-        self.frame_score_summariser.summarise()
-
-    def configure_optimizers(self):
-        # how to use configure_optimizers:
-        # https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.core.LightningModule.html#lightning.pytorch.core.LightningModule.configure_optimizers
-
-        # we freeze backbone and we only pass parameters that requires grad to optimizer:
-        # https://discuss.pytorch.org/t/how-to-train-a-part-of-a-network/8923
-        # https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html#convnet-as-fixed-feature-extractor
-        # https://discuss.pytorch.org/t/for-freezing-certain-layers-why-do-i-need-a-two-step-process/175289/2
-        parameters = [p for p in self.model.parameters() if p.requires_grad]
-        optimizer = torch.optim.AdamW(
-            params=parameters,
-            lr=self.cfg.trainer.optimizer.lr,
-        )
-        lr_scheduler = torch.optim.lr_scheduler.StepLR(
-            optimizer,
-            step_size=self.cfg.trainer.lr_scheduler.step_size,
-            gamma=self.cfg.trainer.lr_scheduler.gamma,
-        )
-
-        results = {
-            "optimizer": optimizer,
-            "lr_scheduler": {
-                "scheduler": lr_scheduler,
-                "interval": self.cfg.trainer.lr_scheduler.step_interval,
-                "frequency": 1,
-            },
-        }
-        return results
+    model.load_state_dict(new_state_dict, strict=False)
+    model.eval()
+    model.to(device)
+    return model

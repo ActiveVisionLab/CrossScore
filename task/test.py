@@ -9,7 +9,7 @@ from lightning.pytorch.loggers import CSVLogger
 import hydra
 from omegaconf import DictConfig, open_dict
 
-from crossscore.task.core import CrossScoreLightningModule
+from task.core import CrossScoreLightningModule
 from crossscore.dataloading.data_manager import get_dataset
 from crossscore.dataloading.transformation.crop import CropperFactory
 from crossscore.utils.io.images import ImageNetMeanStd

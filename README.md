@@ -55,15 +55,20 @@ pip install -e .
 import crossscore
 
 # Score query images against reference images
+# Model checkpoint is auto-downloaded on first use (~129MB)
 results = crossscore.score(
     query_dir="path/to/query/images",
     reference_dir="path/to/reference/images",
 )
 
-# The model checkpoint is auto-downloaded on first use (~129MB)
-# Score maps are written to disk and returned as tensors
+# Per-image mean scores
+print(results["scores"])  # [0.82, 0.91, 0.76, ...]
+
+# Score map tensors (pixel-level quality maps)
 for score_map in results["score_maps"]:
     print(score_map.shape)  # (batch_size, H, W)
+
+# Colorized score map PNGs are written to results["out_dir"]
 ```
 
 ### Command Line
@@ -72,6 +77,9 @@ crossscore --query-dir path/to/queries --reference-dir path/to/references
 
 # With options
 crossscore --query-dir renders/ --reference-dir gt/ --metric-type mae --batch-size 4
+
+# Force CPU mode
+crossscore --query-dir renders/ --reference-dir gt/ --cpu
 ```
 
 ### Environment Variables

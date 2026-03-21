@@ -1,61 +1,37 @@
 """High-level API for CrossScore image quality assessment."""
 
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union, List
 
+import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from torchvision.transforms import v2 as T
 from omegaconf import OmegaConf
+from tqdm import tqdm
 
 from crossscore._download import get_checkpoint_path
 from crossscore.utils.io.images import ImageNetMeanStd
 from crossscore.dataloading.dataset.simple_reference import SimpleReference
-from crossscore.dataloading.transformation.crop import CropperFactory
 
 
-def _build_config(
-    metric_type: str = "ssim",
-    metric_min: int = 0,
-    metric_max: int = 1,
-    batch_size: int = 8,
-    num_workers: int = 4,
-    resize_short_side: int = 518,
-    devices: Optional[list] = None,
-    out_dir: Optional[str] = None,
-) -> OmegaConf:
-    """Build an OmegaConf config object for prediction."""
-    use_gpu = torch.cuda.is_available() and devices != "cpu"
-    if devices is None:
-        devices = [0] if use_gpu else "auto"
-    elif devices == "cpu":
-        devices = "auto"
-        use_gpu = False
+def _write_score_maps(score_maps, query_paths, out_dir, metric_type, metric_min, metric_max):
+    """Write score maps to disk as colorized PNGs."""
+    from PIL import Image
+    from crossscore.utils.misc.image import gray2rgb
 
-    config_dir = Path(__file__).parent / "config"
-    # Load base configs
-    base_cfg = OmegaConf.load(config_dir / "default_predict.yaml")
-    model_cfg = OmegaConf.load(config_dir / "model" / "model.yaml")
-    data_cfg = OmegaConf.load(config_dir / "data" / "SimpleReference.yaml")
+    vrange_vis = [metric_min, metric_max]
+    out_dir = Path(out_dir) / "score_maps"
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Merge model config into base
-    base_cfg.model = model_cfg
-    base_cfg.data = data_cfg
-
-    # Apply overrides
-    base_cfg.model.predict.metric.type = metric_type
-    base_cfg.model.predict.metric.min = metric_min
-    base_cfg.model.predict.metric.max = metric_max
-    base_cfg.data.loader.validation.batch_size = batch_size
-    base_cfg.data.loader.validation.num_workers = num_workers
-    base_cfg.trainer.devices = devices
-    base_cfg.trainer.precision = "16-mixed" if use_gpu else "32-true"
-    base_cfg.trainer.accelerator = "gpu" if use_gpu else "cpu"
-
-    if out_dir is not None:
-        base_cfg.logger.predict.out_dir = out_dir
-
-    return base_cfg
+    idx = 0
+    for batch_maps, batch_paths in zip(score_maps, query_paths):
+        for score_map, qpath in zip(batch_maps, batch_paths):
+            fname = Path(qpath).stem + ".png"
+            rgb = gray2rgb(score_map.cpu().numpy(), vrange_vis)
+            Image.fromarray(rgb).save(out_dir / fname)
+            idx += 1
+    return str(out_dir)
 
 
 def score(
@@ -66,9 +42,9 @@ def score(
     batch_size: int = 8,
     num_workers: int = 4,
     resize_short_side: int = 518,
-    devices: Optional[list] = None,
+    device: Optional[str] = None,
     out_dir: Optional[str] = None,
-    write_outputs: bool = True,
+    write_score_maps: bool = True,
 ) -> dict:
     """Score query images against reference images using CrossScore.
 
@@ -79,16 +55,16 @@ def score(
         metric_type: Metric type to predict. One of "ssim", "mae", "mse".
         batch_size: Batch size for inference.
         num_workers: Number of data loading workers.
-        resize_short_side: Resize images so short side equals this value. Set to -1 to disable.
-        devices: List of GPU device indices. Defaults to [0] if CUDA available.
-        out_dir: Output directory for score maps. Defaults to a timestamped directory
-            under the checkpoint's parent.
-        write_outputs: Whether to write score maps and visualizations to disk.
+        resize_short_side: Resize images so short side equals this value. -1 to disable.
+        device: Device string ("cuda", "cuda:0", "cpu"). Auto-detected if None.
+        out_dir: Output directory for score maps. Defaults to "./crossscore_output".
+        write_score_maps: Whether to write colorized score map PNGs to disk.
 
     Returns:
         Dictionary with:
-            - "score_maps": List of predicted score map tensors
-            - "out_dir": Output directory path (if write_outputs=True)
+            - "score_maps": List of score map tensors, each (B, H, W)
+            - "scores": List of per-image mean scores (float)
+            - "out_dir": Output directory path (if write_score_maps=True)
 
     Example:
         >>> import crossscore
@@ -96,52 +72,26 @@ def score(
         ...     query_dir="path/to/query/images",
         ...     reference_dir="path/to/reference/images",
         ... )
+        >>> print(results["scores"])  # per-image mean scores
     """
-    import lightning
-    from datetime import datetime
-    from crossscore.task.core import CrossScoreLightningModule
+    from crossscore.task.core import load_model
+
+    # Determine device
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # Get checkpoint
     if ckpt_path is None:
         ckpt_path = get_checkpoint_path()
 
-    # Build config
-    metric_min = -1 if metric_type == "ssim" else 0
-    # For SSIM, CrossScore predicts in [0, 1] by default (the common sub-range)
-    if metric_type == "ssim":
-        metric_min = 0
+    # Load model
+    model = load_model(ckpt_path, device=device)
 
-    cfg = _build_config(
-        metric_type=metric_type,
-        metric_min=metric_min,
-        batch_size=batch_size,
-        num_workers=num_workers,
-        resize_short_side=resize_short_side,
-        devices=devices,
-        out_dir=out_dir,
-    )
-
-    # Set checkpoint path
-    cfg.trainer.ckpt_path_to_load = ckpt_path
-
-    # Determine output directory
-    if cfg.logger.predict.out_dir is None:
-        now = datetime.now().strftime("%Y%m%d_%H%M%S.%f")
-        log_dir = Path(ckpt_path).parents[1] if Path(ckpt_path).parent.name == "ckpt" else Path(".")
-        cfg.logger.predict.out_dir = str(log_dir / "predict" / now)
-
-    if not write_outputs:
-        cfg.logger.predict.write.flag.batch = False
-        cfg.logger.predict.write.config.vis_img_every_n_steps = -1
-
-    # Set up data
-    lightning.seed_everything(cfg.lightning.seed, workers=True)
-
+    # Set up data transforms
     img_norm_stat = ImageNetMeanStd()
     transforms = {
         "img": T.Normalize(mean=img_norm_stat.mean, std=img_norm_stat.std),
     }
-
     if resize_short_side > 0:
         transforms["resize"] = T.Resize(
             resize_short_side,
@@ -149,62 +99,73 @@ def score(
             antialias=True,
         )
 
+    # Build dataset and dataloader
+    neighbour_config = {"strategy": "random", "cross": 5, "deterministic": False}
     dataset = SimpleReference(
         query_dir=query_dir,
         reference_dir=reference_dir,
         transforms=transforms,
-        neighbour_config=cfg.data.neighbour_config,
+        neighbour_config=neighbour_config,
         return_item_paths=True,
-        zero_reference=cfg.data.dataset.zero_reference,
+        zero_reference=False,
     )
 
     dataloader = DataLoader(
         dataset,
-        batch_size=cfg.data.loader.validation.batch_size,
+        batch_size=batch_size,
         shuffle=False,
-        num_workers=cfg.data.loader.validation.num_workers,
-        pin_memory=True,
+        num_workers=num_workers,
+        pin_memory=(device != "cpu"),
         persistent_workers=False,
     )
 
-    # Build model and trainer
-    model = CrossScoreLightningModule(cfg)
+    # Run inference
+    all_score_maps = []
+    all_scores = []
+    all_query_paths = []
 
-    NUM_GPUS = len(cfg.trainer.devices) if isinstance(cfg.trainer.devices, list) else 0
-    if NUM_GPUS > 1:
-        from lightning.pytorch.strategies import DDPStrategy
-        strategy = DDPStrategy(find_unused_parameters=False, static_graph=True)
-        use_distributed_sampler = True
-    else:
-        strategy = "auto"
-        use_distributed_sampler = False
-
-    trainer = lightning.Trainer(
-        accelerator=cfg.trainer.accelerator,
-        devices=cfg.trainer.devices,
-        precision=cfg.trainer.precision,
-        strategy=strategy,
-        use_distributed_sampler=use_distributed_sampler,
-        logger=False,
-    )
-
-    # Run prediction
     with torch.no_grad():
-        predictions = trainer.predict(
-            model,
-            dataloader,
-            ckpt_path=ckpt_path,
+        for batch in tqdm(dataloader, desc="CrossScore"):
+            query_img = batch["query/img"].to(device)
+            ref_imgs = batch.get("reference/cross/imgs")
+            if ref_imgs is not None:
+                ref_imgs = ref_imgs.to(device)
+
+            outputs = model(
+                query_img=query_img,
+                ref_cross_imgs=ref_imgs,
+                norm_img=False,
+            )
+
+            score_map = outputs["score_map_ref_cross"]  # (B, H, W)
+            all_score_maps.append(score_map.cpu())
+
+            # Per-image mean score
+            for i in range(score_map.shape[0]):
+                all_scores.append(score_map[i].mean().item())
+
+            # Track query paths for output naming
+            if "item_paths" in batch and "query/img" in batch["item_paths"]:
+                all_query_paths.append(batch["item_paths"]["query/img"])
+
+    # Build results
+    metric_min = -1 if metric_type == "ssim" else 0
+    if metric_type == "ssim":
+        metric_min = 0  # CrossScore predicts SSIM in [0, 1] by default
+
+    results = {
+        "score_maps": all_score_maps,
+        "scores": all_scores,
+    }
+
+    # Write outputs
+    if write_score_maps and all_score_maps:
+        if out_dir is None:
+            out_dir = "./crossscore_output"
+        written_dir = _write_score_maps(
+            all_score_maps, all_query_paths, out_dir,
+            metric_type, metric_min, metric_max=1,
         )
-
-    # Collect results
-    score_maps = []
-    if predictions:
-        for batch_output in predictions:
-            if "score_map_ref_cross" in batch_output:
-                score_maps.append(batch_output["score_map_ref_cross"].cpu())
-
-    results = {"score_maps": score_maps}
-    if write_outputs:
-        results["out_dir"] = cfg.logger.predict.out_dir
+        results["out_dir"] = written_dir
 
     return results

@@ -41,13 +41,11 @@ dependencies = [
     # Core deep learning (flexible ranges - user installs PyTorch first)
     "torch>=2.0.0",
     "torchvision>=0.15.0",
-    "lightning>=2.0.0",
 
     # DINOv2 backbone
     "transformers>=4.30.0",
 
     # Configuration
-    "hydra-core>=1.3.0",
     "omegaconf>=2.3.0",
 
     # Model download
@@ -57,30 +55,10 @@ dependencies = [
     "Pillow>=9.0.0",
     "imageio>=2.20.0",
     "numpy>=1.22.0",
-    "scipy>=1.9.0",
-    "scikit-image>=0.19.0",
     "matplotlib>=3.5.0",
 
-    # Data
-    "pandas>=1.4.0",
+    # Progress bar
     "tqdm>=4.60.0",
-]
-
-[project.optional-dependencies]
-# For training (additional deps not needed for inference)
-train = [
-    "wandb>=0.15.0",
-    "scikit-learn>=1.0.0",
-    "accelerate>=0.20.0",
-    "tensorboard>=2.10.0",
-]
-# Memory-efficient attention (optional, for large images)
-xformers = [
-    "xformers>=0.0.20",
-]
-dev = [
-    "pytest>=7.0",
-    "ruff>=0.1.0",
 ]
 
 [project.urls]

@@ -13,7 +13,7 @@ import hydra
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig
 
-from crossscore.task.core import CrossScoreLightningModule
+from task.core import CrossScoreLightningModule
 from crossscore.dataloading.data_manager import get_dataset
 from crossscore.dataloading.transformation.crop import CropperFactory
 from crossscore.utils.io.images import ImageNetMeanStd

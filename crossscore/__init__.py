@@ -9,6 +9,7 @@ Example:
     ...     query_dir="path/to/query/images",
     ...     reference_dir="path/to/reference/images",
     ... )
+    >>> print(results["scores"])  # per-image mean scores
 """
 
 __version__ = "1.0.0"
