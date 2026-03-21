@@ -4,17 +4,17 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python>=3.9,<3.13
+  - python=3.10.8
   # PyTorch CPU-only
-  - pytorch>=2.0.0,<2.5
-  - torchvision>=0.15.0,<0.20
+  - pytorch=2.1.2
+  - torchvision=0.16.2
   - cpuonly
   # CrossScore dependencies
-  - transformers>=4.30.0,<5
-  - omegaconf>=2.3.0,<2.4
-  - pillow>=9.0.0,<11
-  - imageio>=2.20.0,<3
-  - numpy>=1.22.0,<2
-  - matplotlib>=3.5.0,<4
-  - tqdm>=4.60.0,<5
-  - huggingface_hub>=0.14.0,<1
+  - transformers=4.33.3
+  - omegaconf=2.3.0
+  - pillow=10.0.1
+  - imageio=2.31.4
+  - numpy=1.26.2
+  - matplotlib=3.8.0
+  - tqdm=4.65.0
+  - huggingface_hub=0.19.4
