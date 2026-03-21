@@ -1,7 +1,8 @@
 # CrossScore: Towards Multi-View Image Evaluation and Scoring
 
 **[Project Page](https://crossscore.active.vision) |
-[arXiv](https://arxiv.org/abs/2404.14409)**
+[arXiv](https://arxiv.org/abs/2404.14409) |
+[Data Processing Script](https://github.com/ziruiw-dev/CrossScore-3DGS-Preprocessing)**
 
 [Zirui Wang](https://scholar.google.com/citations?user=zCBKqa8AAAAJ&hl=en), 
 [Wenjing Bian](https://scholar.google.com/citations?user=IVfbqkgAAAAJ&hl=en), 
@@ -55,9 +56,10 @@ In our actual training, our model is trained using MFR that pre-processed by thr
 [TensoRF](https://docs.nerf.studio/nerfology/methods/tensorf.html), and 
 [NeRFacto](https://docs.nerf.studio/nerfology/methods/nerfacto.html).
 Due to the preprocessed file size (~2TB), it is challenging to directly share
-this pre-processed data. One work around is to release a data pre-processing script 
-for MFR, which we are still tidying up. 
-**We aim to release the pre-processing script in Dec 2024.**
+this pre-processed data. ~~One work around is to release a data pre-processing script
+for MFR, which we are still tidying up.
+**We aim to release the pre-processing script in Dec 2024.**~~
+We have released the data pre-processing script at [this repository](https://github.com/ziruiw-dev/CrossScore-3DGS-Preprocessing).
 
 ## Training
 We train our model with two NVIDIA A5000 (24GB) GPUs for about two days. 
@@ -83,7 +85,7 @@ on our project page.
 ## Todo
 - [ ] Create a HuggingFace demo page.
 - [ ] Release ECCV quantitative results related scripts.
-- [ ] Release data processing scripts
+- [x] Release [data processing scripts](https://github.com/ziruiw-dev/CrossScore-3DGS-Preprocessing)
 - [ ] Release PyPI and Conda package.
 
 ## Acknowledgement
