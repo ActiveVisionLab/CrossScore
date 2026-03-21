@@ -2,8 +2,7 @@ from argparse import ArgumentParser
 import sys
 from pathlib import Path
 
-sys.path.append(str(Path(__file__).parents[2]))
-from utils.io.score_summariser import SummaryWriterGroundTruth
+from crossscore.utils.io.score_summariser import SummaryWriterGroundTruth
 
 
 def parse_args():

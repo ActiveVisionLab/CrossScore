@@ -2,8 +2,8 @@ import json
 from pathlib import Path
 from PIL import Image
 import numpy as np
-from utils.io.images import metric_map_write, u8
-from utils.misc.image import gray2rgb, attn2rgb, de_norm_img
+from crossscore.utils.io.images import metric_map_write, u8
+from crossscore.utils.misc.image import gray2rgb, attn2rgb, de_norm_img
 
 
 def get_vrange(predict_metric_type, predict_metric_min, predict_metric_max):

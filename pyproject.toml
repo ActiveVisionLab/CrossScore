@@ -1,0 +1,100 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "crossscore"
+version = "1.0.0"
+description = "CrossScore: Towards Multi-View Image Evaluation and Scoring"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.9"
+authors = [
+    {name = "Zirui Wang"},
+    {name = "Wenjing Bian"},
+    {name = "Victor Adrian Prisacariu"},
+]
+keywords = ["image quality assessment", "neural rendering", "novel view synthesis", "deep learning"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Image Processing",
+]
+
+# NOTE on PyTorch/CUDA:
+# We require torch>=2.0.0 but do NOT pin a specific CUDA version.
+# Users should install PyTorch with their preferred CUDA version FIRST:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+# Then install CrossScore:
+#   pip install crossscore
+#
+# This avoids CUDA version conflicts since PyTorch+CUDA combos vary by system.
+dependencies = [
+    # Core deep learning (flexible ranges - user installs PyTorch first)
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+    "lightning>=2.0.0",
+
+    # DINOv2 backbone
+    "transformers>=4.30.0",
+
+    # Configuration
+    "hydra-core>=1.3.0",
+    "omegaconf>=2.3.0",
+
+    # Model download
+    "huggingface-hub>=0.20.0",
+
+    # Image processing
+    "Pillow>=9.0.0",
+    "imageio>=2.20.0",
+    "numpy>=1.22.0",
+    "scipy>=1.9.0",
+    "scikit-image>=0.19.0",
+    "matplotlib>=3.5.0",
+
+    # Data
+    "pandas>=1.4.0",
+    "tqdm>=4.60.0",
+]
+
+[project.optional-dependencies]
+# For training (additional deps not needed for inference)
+train = [
+    "wandb>=0.15.0",
+    "scikit-learn>=1.0.0",
+    "accelerate>=0.20.0",
+    "tensorboard>=2.10.0",
+]
+# Memory-efficient attention (optional, for large images)
+xformers = [
+    "xformers>=0.0.20",
+]
+dev = [
+    "pytest>=7.0",
+    "ruff>=0.1.0",
+]
+
+[project.urls]
+Homepage = "https://crossscore.active.vision"
+Repository = "https://github.com/ActiveVisionLab/CrossScore"
+Paper = "https://arxiv.org/abs/2404.14409"
+
+[project.scripts]
+crossscore = "crossscore.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["crossscore*"]
+
+[tool.setuptools.package-data]
+crossscore = [
+    "config/**/*.yaml",
+]

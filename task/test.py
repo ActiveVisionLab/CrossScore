@@ -1,7 +1,4 @@
-import sys
 from pathlib import Path
-
-sys.path.append(str(Path(__file__).parents[1]))
 
 import torch
 from torch.utils.data import DataLoader
@@ -12,10 +9,10 @@ from lightning.pytorch.loggers import CSVLogger
 import hydra
 from omegaconf import DictConfig, open_dict
 
-from core import CrossScoreLightningModule
-from dataloading.data_manager import get_dataset
-from dataloading.transformation.crop import CropperFactory
-from utils.io.images import ImageNetMeanStd
+from crossscore.task.core import CrossScoreLightningModule
+from crossscore.dataloading.data_manager import get_dataset
+from crossscore.dataloading.transformation.crop import CropperFactory
+from crossscore.utils.io.images import ImageNetMeanStd
 
 
 @hydra.main(version_base="1.3", config_path="../config", config_name="default_test")

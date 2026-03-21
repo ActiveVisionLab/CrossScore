@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.cm as cm
 from PIL import Image, ImageDraw, ImageFont
-from utils.io.images import u8
+from crossscore.utils.io.images import u8
 
 
 def jigsaw_to_image(x, grid_size):

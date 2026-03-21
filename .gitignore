@@ -7,3 +7,12 @@ tmp.sh
 log*
 datadir*
 debug*
+
+# Package build artifacts
+dist/
+build/
+*.egg-info/
+*.egg
+
+# Plan file
+plan.md

@@ -5,10 +5,9 @@ import torch
 from torch.utils.data import Dataset
 from omegaconf import OmegaConf
 
-sys.path.append(str(Path(__file__).parents[2]))
-from utils.io.images import metric_map_read, image_read
-from utils.neighbour.sampler import SamplerFactory
-from utils.check_config import ConfigChecker
+from crossscore.utils.io.images import metric_map_read, image_read
+from crossscore.utils.neighbour.sampler import SamplerFactory
+from crossscore.utils.check_config import ConfigChecker
 
 
 class NeighbourSelector:

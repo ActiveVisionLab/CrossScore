@@ -7,9 +7,9 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from torchvision.utils import make_grid
 from PIL import Image
-from utils.io.images import u8
-from utils.misc.image import de_norm_img
-from utils.check_config import check_reference_type
+from crossscore.utils.io.images import u8
+from crossscore.utils.misc.image import de_norm_img
+from crossscore.utils.check_config import check_reference_type
 
 
 class BatchVisualiserBase(ABC):

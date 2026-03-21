@@ -9,8 +9,8 @@ import pandas as pd
 from pandas import DataFrame
 from tqdm import tqdm
 
-from utils.io.images import metric_map_read
-from utils.evaluation.metric import mse2psnr
+from crossscore.utils.io.images import metric_map_read
+from crossscore.utils.evaluation.metric import mse2psnr
 
 
 class ScoreReader(Dataset):

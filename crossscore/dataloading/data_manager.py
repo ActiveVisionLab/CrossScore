@@ -1,6 +1,6 @@
 import torch
 from omegaconf import OmegaConf, ListConfig
-from dataloading.dataset.nvs_dataset import NvsDataset
+from crossscore.dataloading.dataset.nvs_dataset import NvsDataset
 from pprint import pprint
 
 
